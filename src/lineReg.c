@@ -22,26 +22,29 @@
 
 #include "util.h"
 
-// Function to register line scans
-unsigned char** registerLines(unsigned char** lineScans, int[2] dims, int lengthOfScan){
+/* Function to register line scans */
+int** registerLines(int** lineScans, int dims[2], int lengthOfScan){
 
-	//Set regLines
-	unsigned char** regLines = NULL; 
+	/* Def */
+	int i, scanLines;
+	/* Set regLines */
+	int** regLines = NULL; 
 
-	//Check bounds
+	/* Check bounds */
 	if( lengthOfScan % dims[1] != 0 ){
 		fprintf(stderr,"LineReg: Scan length incorrect");
 		return regLines;
 	}
 
+	/* Calculate number of scan lines */
+	scanLines = dims[1]/lengthOfScan;
 
-	//Calculate number of scan lines
-	int scanLines = dims[1]/lengthOfScan;
-
-	//Iterate over scan lines
-	for( int i = 1; i < scanLines; i++){
+	/* Iterate over scan lines */
+	for( i = 1; i < scanLines; i++){
 
 
 
 	}	
+
+	return regLines;
 }

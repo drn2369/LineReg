@@ -15,41 +15,180 @@
  *
  * =====================================================================================
  */
+#include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
 
-unsigned char** allocate_image_array(int col, int row){
+#include "util.h"
+
+void skipComments(FILE *fP){
+
+	/* Def */
+	int  ltr;
+	char line[100];
+
+	while( ( ltr = fgetc(fP) ) != EOF && isspace(ltr) ) {
+		if(ltr == '#'){
+			fgets(line, sizeof(line),fP);
+			skipComments(fP);
+		}else{
+			fseek(fP, -1, SEEK_CUR);
+		}
+	}
+}
+
+void freePGMData(PGMData* dataPtr){
+
+	free_image_array(dataPtr->image,dataPtr->row);
+
+}
+
+void readPGM(const char *fN, PGMData *data){
 	
-	//Def
-	unsigned char** image = NULL;
-	int r,rr;
+	/*Def */
+	FILE *fileVar;
+	char version[3];
+	int i, j;
+	int h, l;
 
-	//Make first allocation of rows
-	if( (image = (unsigned char**)malloc(rows, sizeof(unsigned char*))) == NULL ){
-		fprintf(stderr, "Error allocating rows.\n");
-		return ((unsigned char **)NULL);
+	/* Open and start reading */
+	fileVar = fopen(fN, "rb");
+	if (fileVar == NULL){
+		fprintf(stderr,"Unable to open file");
+		return;
 	}
 
-	//Allocate array for each row
-	for(r = 0; r < row; r++){
-		if( (image[r] = (unsigned char*) malloc(cols, sizeof(unsigned char))) == NULL){
+	/*Get Version*/
+	fgets(version, sizeof(version), fileVar);
+	if( strcmp(version, "P5") ){
+		fprintf(stderr,"Unknown file type");
+		return;
+	}
+
+	/*Skip through comments*/
+	skipComments(fileVar);
+	/*Get row, col and max grey value*/
+	fscanf(fileVar, "%d", &data->col);
+	skipComments(fileVar);
+	fscanf(fileVar, "%d", &data->row);
+	skipComments(fileVar);
+	fscanf(fileVar, "%d", &data->max);
+	fgetc(fileVar);
+
+	/* Create image array */
+	data->image = allocate_image_array(data->col, data->row);
+
+	/* Read image array */
+	
+	/* If max is above 255, then calculate value above 8 bits */ 
+	if( data->max > 255 ){
+		for(i = 0; i < data->row; i++){
+			for(j = 0; j < data->col; j++){
+				/* Get both values */
+				h = fgetc(fileVar);
+				l = fgetc(fileVar);
+			
+				/* Store image */
+				data->image[i][j] = (h << 8) + l;
+			}
+		}
+	/* If max is below 255, read as normal */
+	}else{
+		for(i = 0; i < data->row; i++){
+			for(j = 0; j < data->col; j++){
+				l = fgetc(fileVar);
+				data->image[i][j] = l;
+			}
+		}
+	}
+
+	fclose(fileVar);
+}
+
+void writePGM(const char* fN, PGMData *data){
+
+	/* Define */
+	FILE *fileVar;
+	int i, j;
+	int h, l;
+
+	/* Open file for writing */
+	fileVar = fopen(fN, "wb");
+	if(fileVar == NULL){
+		fprintf(stderr,"Cannot open file to write");
+		return;
+	}	
+
+	/*Write header*/
+	fprintf(fileVar, "P5 ");
+	fprintf(fileVar, "%d %d ", data->col, data->row);
+	fprintf(fileVar, "%d ", data->max);
+	
+	/*Write data*/
+
+	/*Write data if max is over 255*/
+	if(data->max > 255){
+		for( i = 0; i < data->row; i++){
+			for( j = 0; j < data->col; j++){
+				/*Shift bits 5,6*/
+				h = ( data->image[i][j] & 0x0000FF00 ) >> 8;
+				l = ( data->image[i][j] & 0x000000FF );
+
+				/*Write values*/
+				fputc(h, fileVar);
+				fputc(l, fileVar);	
+			}
+		}
+	/*Write data as normal*/
+	}else{
+		for( i = 0; i < data->row; i++){
+			for( j = 0; j < data->col; j++){
+				l = (data->image[i][j]  & 0x000000FF );
+				fputc(l, fileVar);
+			}
+		}
+	}
+	
+	/* Close */
+	fclose(fileVar);
+}
+
+int** allocate_image_array(int cols, int rows){
+	
+	/* Def */
+	int** image = NULL;
+	int r,rr;
+
+	/* Make first allocation of rows */
+	if( (image = malloc(rows*sizeof(int*))) == NULL ){
+		fprintf(stderr, "Error allocating rows.\n");
+		return ((int **)NULL);
+	}
+
+	/* Allocate array for each row */
+	for(r = 0; r < rows; r++){
+		if( (image[r] =  malloc(cols*sizeof(int))) == NULL){
 			fprintf(stderr,"Error allocating columns.\n");
+			/* Cleanup if error*/
 			for(rr=0; rr < r; rr++) free(image[rr]);
 			free(image);
-			return((unsigned char **)NULL);
+			return((int **)NULL);
 		}
 	}
 
 	return image;
 }
 
-void free_image_array(unsigned char** image, int row){
+void free_image_array(int** image, int row){
 	
-	//Def
+	/* Def */
 	int r;
 
-	//Free each row
+	/* Free each row */
 	for(r = 0; r < row; r++) free(image[r]);
 
-	//Free the rest
+	/* Free the rest */
 	free(image);
 }
 

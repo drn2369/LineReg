@@ -30,16 +30,16 @@ extern "C" {
  *			in which the scans are stacked in a column
  *
  *  Parameters:
- *		uchar** lineScans: 2D array which contains the image data for each scan
+ *		int** lineScans: 2D array which contains the image data for each scan
  *		int[2] dims: Dimensions of the 2D array [col, row]
  *		int lengthOfScan: The number of rows in each individual scan
  *					NOTE: lengthOfScan % dims[1] == 0 
  *
  *  Return:
- *		uchar** : A 2D array containing the registered lines 
+ *	 	int** : A 2D array containing the registered lines 
  * =====================================================================================
  */
-unsigned char** registerLines(unsigned char** lineScans, int[2] dims, int lengthOfScan);
+int** registerLines(int** lineScans, int dims[2], int lengthOfScan);
 
 
 #ifdef __cplusplus
