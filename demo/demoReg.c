@@ -29,18 +29,14 @@
 main ( int argc, char *argv[] )
 {
 	/* Def */
-	int dims[2];
+	int lengthOfScan = 8; /* Defined by scanner hardware */
 	PGMImage *testImage = malloc(sizeof(PGMImage));
 		
 	/* Read test image */	
 	readPGM(argv[1], testImage);
 
-	/* Define dimensions of single scanline */
-	dims[0] = testImage->img->col;
-	dims[1] = 8; /* Defined by scanner hardware */
-
 	/* register lines */	
-	registerLines(testImage->img->data, dims, testImage->img->row);
+	registerLines(testImage->img, lengthOfScan);
 
 	/* Cleanup */	
 	freePGMImage(testImage);
