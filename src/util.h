@@ -24,28 +24,45 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/* 
+ * ===  STRUCTURE  ======================================================================
+ *         Name:  Image
+ *  Description:  Container for holding Image data 
+ * =====================================================================================
+ */
+typedef struct _Image{
+	int row;
+	int col;
+	int **data;
+}Image;
 
 /* 
  * ===  STRUCTURE  ======================================================================
- *         Name:  PGMData
- *  Description:  Container for holding PGM data 
+ *         Name:  PGMImage
+ *  Description:  Container for holding PGM image data 
  * =====================================================================================
  */
-typedef struct _PGMData{
-	int row;
-	int col;
+typedef struct _PGMImage{
+	Image *img;
 	int max;
-	int **image;
-} PGMData;
+} PGMImage;
 
 
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  freePGMData
- *  Description:  Function to free PGM data pointer
+ *  Description:  Function to free Image pointer
  * =====================================================================================
  */
-void freePGMData(PGMData* dataPtr);
+void freeImage(Image* dataPtr);
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  freePGMData
+ *  Description:  Function to free PGM image pointer
+ * =====================================================================================
+ */
+void freePGMImage(PGMImage* dataPtr);
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  skipComment
@@ -61,10 +78,10 @@ void skipComments(FILE *fP);
  *	
  *	Params:
  *		const char* fN: File path [in]
- *		PGMData * data: PGM data structure to store image [out]
+ *		PGMImage * image: PGM data structure to store image [out]
  * =====================================================================================
  */
-void readPGM(const char *fN, PGMData *data);
+void readPGM(const char *fN, PGMImage *image);
 
 /* 
  * ===  FUNCTION  ======================================================================
@@ -73,10 +90,10 @@ void readPGM(const char *fN, PGMData *data);
  *
  *	Params:
  *		const char* fN: File path for image writing
- *		PGMData *data: PGM data structure for output image
+ *		PGMImage *image: PGM data structure for output image
  * =====================================================================================
  */
-void writePGM(const char* fN, PGMData *data); 
+void writePGM(const char* fN, PGMImage *image); 
 
 /* 
  * ===  FUNCTION  ======================================================================

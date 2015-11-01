@@ -22,11 +22,27 @@
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  main
- *  Description:  
+ *  Description:  Demo line registration 
  * =====================================================================================
  */
 	int
 main ( int argc, char *argv[] )
 {
+	/* Def */
+	int dims[2];
+	PGMImage *testImage = malloc(sizeof(PGMImage));
+		
+	/* Read test image */	
+	readPGM(argv[1], testImage);
+
+	/* Define dimensions of single scanline */
+	dims[0] = testImage->img->col;
+	dims[1] = 8; /* Defined by scanner hardware */
+
+	/* register lines */	
+	registerLines(testImage->img->data, dims, testImage->img->row);
+
+	/* Cleanup */	
+	freePGMImage(testImage);
 	return EXIT_SUCCESS;
 }				/* ----------  end of function main  ---------- */

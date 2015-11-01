@@ -24,33 +24,41 @@
 
 void skipComments(FILE *fP){
 
-	/* Def */
-	int  ltr;
-	char line[100];
-
-	while( ( ltr = fgetc(fP) ) != EOF && isspace(ltr) ) {
-		if(ltr == '#'){
-			fgets(line, sizeof(line),fP);
-			skipComments(fP);
-		}else{
-			fseek(fP, -1, SEEK_CUR);
-		}
+	while(getc(fP) == '#'){
+		while(getc(fP) != '\n');
 	}
+
+	fseek(fP, -1, SEEK_CUR);
 }
 
-void freePGMData(PGMData* dataPtr){
+void freeImage(Image* dataPtr){
 
-	free_image_array(dataPtr->image,dataPtr->row);
+	/* Free image */
+	free_image_array(dataPtr->data,dataPtr->row);
 
+	/* Free ptr */
+	free(dataPtr);
 }
 
-void readPGM(const char *fN, PGMData *data){
+void freePGMImage(PGMImage* dataPtr){
+
+	/* Free image */
+	freeImage(dataPtr->img);
+
+	/* Free ptr */
+	free(dataPtr);
+}
+
+void readPGM(const char *fN, PGMImage *image){
 	
 	/*Def */
 	FILE *fileVar;
 	char version[3];
 	int i, j;
 	int h, l;
+
+	/* malloc image */
+	image->img = malloc(sizeof(Image));
 
 	/* Open and start reading */
 	fileVar = fopen(fN, "rb");
@@ -66,39 +74,38 @@ void readPGM(const char *fN, PGMData *data){
 		return;
 	}
 
+	fgetc(fileVar); /*burn off \n */
 	/*Skip through comments*/
 	skipComments(fileVar);
 	/*Get row, col and max grey value*/
-	fscanf(fileVar, "%d", &data->col);
-	skipComments(fileVar);
-	fscanf(fileVar, "%d", &data->row);
-	skipComments(fileVar);
-	fscanf(fileVar, "%d", &data->max);
-	fgetc(fileVar);
+	fscanf(fileVar, "%d", &image->img->col);
+	fscanf(fileVar, "%d", &image->img->row);
+	fscanf(fileVar, "%d", &image->max);
+	fgetc(fileVar); /*burn off \n */
 
 	/* Create image array */
-	data->image = allocate_image_array(data->col, data->row);
+	image->img->data = allocate_image_array(image->img->col, image->img->row);
 
 	/* Read image array */
 	
 	/* If max is above 255, then calculate value above 8 bits */ 
-	if( data->max > 255 ){
-		for(i = 0; i < data->row; i++){
-			for(j = 0; j < data->col; j++){
+	if( image->max > 255 ){
+		for(i = 0; i < image->img->row; i++){
+			for(j = 0; j < image->img->col; j++){
 				/* Get both values */
 				h = fgetc(fileVar);
 				l = fgetc(fileVar);
 			
 				/* Store image */
-				data->image[i][j] = (h << 8) + l;
+				image->img->data[i][j] = (h << 8) + l;
 			}
 		}
 	/* If max is below 255, read as normal */
 	}else{
-		for(i = 0; i < data->row; i++){
-			for(j = 0; j < data->col; j++){
+		for(i = 0; i < image->img->row; i++){
+			for(j = 0; j < image->img->col; j++){
 				l = fgetc(fileVar);
-				data->image[i][j] = l;
+				image->img->data[i][j] = l;
 			}
 		}
 	}
@@ -106,7 +113,7 @@ void readPGM(const char *fN, PGMData *data){
 	fclose(fileVar);
 }
 
-void writePGM(const char* fN, PGMData *data){
+void writePGM(const char* fN, PGMImage *image){
 
 	/* Define */
 	FILE *fileVar;
@@ -122,18 +129,18 @@ void writePGM(const char* fN, PGMData *data){
 
 	/*Write header*/
 	fprintf(fileVar, "P5 ");
-	fprintf(fileVar, "%d %d ", data->col, data->row);
-	fprintf(fileVar, "%d ", data->max);
+	fprintf(fileVar, "%d %d ", image->img->col, image->img->row);
+	fprintf(fileVar, "%d ", image->max);
 	
 	/*Write data*/
 
 	/*Write data if max is over 255*/
-	if(data->max > 255){
-		for( i = 0; i < data->row; i++){
-			for( j = 0; j < data->col; j++){
+	if(image->max > 255){
+		for( i = 0; i < image->img->row; i++){
+			for( j = 0; j < image->img->col; j++){
 				/*Shift bits 5,6*/
-				h = ( data->image[i][j] & 0x0000FF00 ) >> 8;
-				l = ( data->image[i][j] & 0x000000FF );
+				h = ( image->img->data[i][j] & 0x0000FF00 ) >> 8;
+				l = ( image->img->data[i][j] & 0x000000FF );
 
 				/*Write values*/
 				fputc(h, fileVar);
@@ -142,9 +149,9 @@ void writePGM(const char* fN, PGMData *data){
 		}
 	/*Write data as normal*/
 	}else{
-		for( i = 0; i < data->row; i++){
-			for( j = 0; j < data->col; j++){
-				l = (data->image[i][j]  & 0x000000FF );
+		for( i = 0; i < image->img->row; i++){
+			for( j = 0; j < image->img->col; j++){
+				l = (image->img->data[i][j]  & 0x000000FF );
 				fputc(l, fileVar);
 			}
 		}
