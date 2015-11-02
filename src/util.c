@@ -22,6 +22,16 @@
 
 #include "util.h"
 
+int prod(const int *dims, int ndims){
+
+	int x = 1;
+	while(ndims--){
+		x *= *dims++;
+	}
+	return x;
+}
+
+
 void skipComments(FILE *fP){
 
 	while(getc(fP) == '#'){

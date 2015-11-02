@@ -24,6 +24,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define idx21(rowIdx,colIdx,nCol) ( (rowIdx*nCol) + colIdx)
+#define row12(idx, nCol) ( idx / nCol )
+#define col12(idx, nCol) ( idx % nCol )
+
 /* 
  * ===  STRUCTURE  ======================================================================
  *         Name:  Image
@@ -47,6 +52,21 @@ typedef struct _PGMImage{
 	int max;
 } PGMImage;
 
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  prod
+ *  Description:  Calculates the product of an int array
+ *
+ *	Params:
+ *		int *dims: int array
+ *		int ndims: number of dimensions
+ *
+ *	Return:
+ *		int: The product
+ * =====================================================================================
+ */
+int prod(const int *dims, int ndims);
 
 /* 
  * ===  FUNCTION  ======================================================================
