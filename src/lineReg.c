@@ -206,6 +206,8 @@ int registerLines(Image *unregImg, int lengthOfScan){
 	int maxLocI, maxLocR, maxLocC;
 	Image *currentLine = NULL;
 	Image *nextLine = NULL;
+	/* DEBUG */
+	const char fN[] = { "subset.pgm" };
 	
 	/* Check bounds */
 	if( unregImg->row % lengthOfScan != 0 ){
@@ -236,6 +238,7 @@ int registerLines(Image *unregImg, int lengthOfScan){
 	/* Subset first line */
 	subsetImageScl(unregImg, &cLine, 0, 0, lengthOfScan, unregImg->col);
 
+	writeSubset(fN, cLine, lengthOfScan, unregImg->col);
 	/* FFT of first line */
 	kiss_fftndr(fft, cLine, cLineCpx);
 
@@ -245,7 +248,7 @@ int registerLines(Image *unregImg, int lengthOfScan){
 		/* Subset next line */
 		subsetImageScl(unregImg, &nLine, i*lengthOfScan, 0, lengthOfScan, unregImg->col);
 	
-		/* FFT of current line */
+		/* FFT of line */
 		kiss_fftndr(fft, nLine, nLineCpx);
 
 		/* Phase correlation */
@@ -262,15 +265,57 @@ int registerLines(Image *unregImg, int lengthOfScan){
 		maxLocC = col12(maxLocI, dims[1]);	
 
 		printf("%d , %d\n", maxLocR, maxLocC); 
-		/* Free current and swap next  */
-		free(cLine);
-		cLine = nLine;
-		nLine = NULL; 
+
+		/* Swap (with freeing current to overwrite)  */
+		/*Image*/
+		//free(cLine);
+		//cLine = malloc(sizeof(nLine));
+		memcpy(cLine, nLine, sizeof(nLine));
+		free(nLine);
+		nLine = NULL;
+		/*FFT*/
+		//free(cLineCpx);
+		//cLineCpx = malloc(sizeof(nLineCpx));
+		memcpy(cLineCpx,nLineCpx, sizeof(nLineCpx));
+		 /* Not deleting nLineCpx as it will just get overwritten */ 
+		
 	}	
 	
 	/* Free everything */
 	free(cLineCpx);
+	free(nLineCpx);
 	kiss_fft_free(fft);
 	kiss_fft_free(ifft);
 	return regOk;
+}
+
+
+/* DEBUG FUNCTIONS */
+void writeSubset(const char* fN, kiss_fft_scalar *subset, int nRow, int nCol){
+
+	/* Def */
+	int i,j;
+
+	/* Allocate new PGM image */
+	PGMImage *image = malloc(sizeof(PGMImage));
+	image->img = malloc(sizeof(Image));
+	image->img->data = allocate_image_array(nCol, nRow);
+	image->img->col = nCol;
+	image->img->row = nRow;
+	image->max = 255;
+
+
+	/* Fill data */
+	for(i = 0; i < nRow; i++){
+		for(j = 0; j < nCol; j++){
+			image->img->data[i][j] = (int)subset[idx21(i,j,nCol)];
+		}
+	}	
+
+	/* Write data */
+	writePGM(fN,image);
+
+	/* Free data */
+	freePGMImage(image);
+	
 }

@@ -203,8 +203,10 @@ void free_image_array(int** image, int row){
 	int r;
 
 	/* Free each row */
-	for(r = 0; r < row; r++) free(image[r]);
-
+	for(r = 0; r < row; r++){
+		 int* intPtr = image[r];
+		 free(intPtr);
+	}
 	/* Free the rest */
 	free(image);
 }

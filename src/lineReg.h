@@ -25,7 +25,6 @@
 extern "C" {
 #endif
 
-
 /* 
 * ===  FUNCTION  ======================================================================
 *         Name:  maxLocation
@@ -137,6 +136,9 @@ void subsetImage(Image *img, Image **imgSubset, int startRow, int startCol, int 
  */
 int registerLines(Image *unregImg, int lengthOfScan);
 
+
+/* Debug functions */
+void writeSubset(const char* fN, kiss_fft_scalar *subset, int nRow, int nCol);
 
 #ifdef __cplusplus
 }
