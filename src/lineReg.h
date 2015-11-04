@@ -51,7 +51,7 @@ int maxLocation(kiss_fft_scalar *arr, int len);
 *		kiss_fft_cpx **out: The output complex array
 * =====================================================================================
 */
-void phaseCorrelation(int fLen, kiss_fft_cpx **ar1, kiss_fft_cpx **ar2, kiss_fft_cpx **out);
+void phaseCorrelation(int fLen, kiss_fft_cpx *ar1, kiss_fft_cpx *ar2, kiss_fft_cpx **out);
 
 /* 
 * ===  FUNCTION  ======================================================================

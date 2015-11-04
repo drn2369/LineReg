@@ -47,7 +47,7 @@ int maxLocation(kiss_fft_scalar *arr, int len){
 }
 
 /* Function to compute phase correlation */
-void phaseCorrelation(int fLen, kiss_fft_cpx **ar1, kiss_fft_cpx **ar2, kiss_fft_cpx **out){
+void phaseCorrelation(int fLen, kiss_fft_cpx *ar1, kiss_fft_cpx *ar2, kiss_fft_cpx **out){
 
 	/* Def */
 	int k;
@@ -56,13 +56,10 @@ void phaseCorrelation(int fLen, kiss_fft_cpx **ar1, kiss_fft_cpx **ar2, kiss_fft
 	for(k = 0; k < fLen; k++){
 
 		/* Conj */
-		(*ar2)[k].i = -1*(*ar2)[k].i;
+		ar2[k].i = -1*ar2[k].i;
 
 		/* Multiply using kiss fft function */
-		C_MUL((*ar1)[k],(*ar2)[k],(*out)[k]);
-
-		/* Deconj */
-		(*ar2)[k].i = -1*(*ar2)[k].i;
+		C_MUL((*out)[k],ar1[k],ar2[k]);
 
 		/* Normalize (maybe) */
 		/*(*out)[k] = (*out)[k] / ( sqrt ( ((*out)[k].r * (*out)[k].r) +
@@ -113,7 +110,7 @@ void subsetImageScl(Image *img, kiss_fft_scalar **imgSubset, int startRow, int s
 	/* Fill Data */
 	for(i = 0; i < rowRange-1; i++){
 		for(j = 0; j < colRange-1; j++){
-			(*imgSubset)[idx21(i,j,colRange)] = (kiss_fft_scalar)img->data[startCol + i][startRow + j];	
+			(*imgSubset)[idx21(i,j,colRange)] = (kiss_fft_scalar)img->data[startRow + i][startCol + j];	
 		}
 	}
 }
@@ -146,7 +143,7 @@ void subsetImageCpx(Image *img, kiss_fft_cpx **imgSubset, int startRow, int star
 	/* Fill Data */
 	for(i = 0; i < rowRange-1; i++){
 		for(j = 0; j < colRange-1; j++){
-			(*imgSubset)[idx21(i,j,colRange)].r = img->data[startCol + i][startRow + j];	
+			(*imgSubset)[idx21(i,j,colRange)].r = img->data[startRow + i][startCol + j];	
 			(*imgSubset)[idx21(i,j,colRange)].i = 0;	
 		}
 	}
@@ -192,7 +189,7 @@ void subsetImage(Image *img, Image **imgSubset, int startRow, int startCol, int 
 	/* Fill Data */
 	for(i = 0; i < rowRange-1; i++){
 		for(j = 0; j < colRange-1; j++){
-			(*imgSubset)->data[i][j] = img->data[startCol + i][startRow + j];	
+			(*imgSubset)->data[i][j] = img->data[startRow + i][startCol + j];	
 		}
 	}		
 }
@@ -208,6 +205,8 @@ int registerLines(Image *unregImg, int lengthOfScan){
 	Image *nextLine = NULL;
 	/* DEBUG */
 	const char fN[] = { "subset.pgm" };
+	const char fN2[] = { "subset2.pgm" };
+	const char fN3[] = { "subset3.pgm" };
 	
 	/* Check bounds */
 	if( unregImg->row % lengthOfScan != 0 ){
@@ -219,15 +218,19 @@ int registerLines(Image *unregImg, int lengthOfScan){
 	/* TODO: Check scanline size to be power of 2 */
 
 	/* Init 2D FFT */
-	const int dims[2] = { lengthOfScan, unregImg->col};
+	const int dims[2] = {unregImg->col, lengthOfScan};
 	const int ndims = 2;
 	kiss_fft_scalar *cLine = NULL;
 	kiss_fft_scalar *nLine = NULL;
+	kiss_fft_scalar *sLine = NULL;
+	kiss_fft_scalar *pLine = NULL;
 
 	/* Calc freq length and allocate */
 	int fLen = calcFreqLen(dims,ndims);
 	kiss_fft_cpx *cLineCpx = malloc(fLen*(sizeof(kiss_fft_cpx)));
 	kiss_fft_cpx *nLineCpx = malloc(fLen*(sizeof(kiss_fft_cpx)));
+	kiss_fft_cpx *sLineCpx = NULL;
+	kiss_fft_cpx *pLineCpx = NULL;
 
 	kiss_fftndr_cfg fft = kiss_fftndr_alloc(dims,ndims,0,0,0); /* Foward 2D FFT */
 	kiss_fftndr_cfg ifft = kiss_fftndr_alloc(dims,ndims,1,0,0); /* Inverse 2D FFT */
@@ -237,25 +240,30 @@ int registerLines(Image *unregImg, int lengthOfScan){
 
 	/* Subset first line */
 	subsetImageScl(unregImg, &cLine, 0, 0, lengthOfScan, unregImg->col);
-
-	writeSubset(fN, cLine, lengthOfScan, unregImg->col);
+	
 	/* FFT of first line */
 	kiss_fftndr(fft, cLine, cLineCpx);
 
 	/* Iterate over scan lines */
 	for( i = 1; i < scanLines; i++){
+		/* Malloc space for phase correlation */
+		pLineCpx = malloc(fLen*(sizeof(kiss_fft_cpx)));
+		pLine = malloc(lengthOfScan*unregImg->col*sizeof(kiss_fft_scalar));
 
+		writeSubset(fN, cLine, lengthOfScan, unregImg->col);
 		/* Subset next line */
 		subsetImageScl(unregImg, &nLine, i*lengthOfScan, 0, lengthOfScan, unregImg->col);
+		writeSubset(fN2, nLine, lengthOfScan, unregImg->col);
 	
 		/* FFT of line */
 		kiss_fftndr(fft, nLine, nLineCpx);
 
 		/* Phase correlation */
-		phaseCorrelation(fLen,&cLineCpx,&nLineCpx,&cLineCpx);
+		phaseCorrelation(fLen,cLineCpx,nLineCpx,&pLineCpx);
 
 		/* IFFT of combination */
-		kiss_fftndri(ifft, cLineCpx, cLine);
+		kiss_fftndri(ifft, pLineCpx, pLine);
+		writeSubset(fN3, pLine, lengthOfScan, unregImg->col);
 	
 		/* Find max of cLine */
 		maxLocI = maxLocation(cLine, dims[0]*dims[1]);
@@ -266,24 +274,41 @@ int registerLines(Image *unregImg, int lengthOfScan){
 
 		printf("%d , %d\n", maxLocR, maxLocC); 
 
-		/* Swap (with freeing current to overwrite)  */
+		/* Swap Lines */
+		sLine = cLine;
+		cLine = nLine;
+		free(sLine);
+		nLine = NULL;
+
+		/* Swap Cpx */
+		sLineCpx = cLineCpx;
+		cLineCpx = nLineCpx;
+		free(sLineCpx);
+		nLineCpx = malloc(fLen*(sizeof(kiss_fft_cpx)));
+		sLineCpx = NULL;
+
+		free(pLineCpx);
+		free(pLine);
+
 		/*Image*/
-		//free(cLine);
-		//cLine = malloc(sizeof(nLine));
+	  /*	free(cLine);
+		cLine = malloc(sizeof(nLine));
 		memcpy(cLine, nLine, sizeof(nLine));
 		free(nLine);
-		nLine = NULL;
+		nLine = NULL;*/
 		/*FFT*/
-		//free(cLineCpx);
-		//cLineCpx = malloc(sizeof(nLineCpx));
+	 /*	free(cLineCpx);
+		cLineCpx = malloc(sizeof(nLineCpx));
 		memcpy(cLineCpx,nLineCpx, sizeof(nLineCpx));
-		 /* Not deleting nLineCpx as it will just get overwritten */ 
-		
+		free(nLineCpx);
+		nLineCpx = malloc(fLen*(sizeof(kiss_fft_cpx)));
+	 */
 	}	
 	
 	/* Free everything */
-	free(cLineCpx);
+	free(cLine);
 	free(nLineCpx);
+	free(cLineCpx);
 	kiss_fft_free(fft);
 	kiss_fft_free(ifft);
 	return regOk;
